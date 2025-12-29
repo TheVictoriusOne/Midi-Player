@@ -195,17 +195,14 @@ for events in all_events:
         pass
     match events[0]:
         case 8:     # Note Off
-            print("Note Off")
             out.note_off(note=events[3], velocity=events[4], channel=events[1])
             if (events[3], events[1]) in active_notes:
                 active_notes.remove((events[3], events[1]))
         case 9:     # Note On
             if events[4] == 0:
-                print("Note Off")
                 out.note_off(note=events[3], velocity=events[4], channel=events[1])
                 active_notes.remove((events[3], events[1]))
             else:
-                print("Note On")
                 out.note_on(note=events[3], velocity=events[4], channel=events[1])
                 active_notes.append((events[3], events[1]))
         case 10:     # Polyphonic Key Pressure
@@ -236,4 +233,5 @@ for events in all_events:
             out.write_short(0xE0 | events[1], events[3], events[4])
         case 15:
             pass
+
     
