@@ -15,6 +15,7 @@ def get_bit(value, index):
 
 def fail(msg):
     print(msg)
+    time.sleep(3)
     sys.exit()
 
 # Check if the file is correct.
@@ -185,14 +186,22 @@ for track in Music:
 
 all_events.sort(key=lambda ev: ev[2])
 
+
 active_notes = []
 for events in all_events:
+    time_test = time.time_ns()
     for event in pg.event.get():
         if event.type == pg.QUIT:
             exit()
+    time_test = time.time_ns() - time_test
+    if time_test > 100000000:
+        start_time += time_test
     render_GUI()
     while (time.time_ns() - start_time) / 1000000 < events[2] * 1000:
+        #if round(time.time_ns() * 0.0000001) % 12 == 4:
+            # if necessary, you can run extra code here.
         pass
+        
     match events[0]:
         case 8:     # Note Off
             out.note_off(note=events[3], velocity=events[4], channel=events[1])
@@ -233,5 +242,3 @@ for events in all_events:
             out.write_short(0xE0 | events[1], events[3], events[4])
         case 15:
             pass
-
-    
