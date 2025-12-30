@@ -181,7 +181,7 @@ for pos in Track_Pos:
 
 # GUI
 
-width, height = (960, 720)
+width, height = (1920, 1080)
 tile_w = max(1, int(width / 128 / 1.075))
 tile_h = max(1, int(height / 16))
 screen = pg.display.set_mode((width, height))
@@ -272,3 +272,4 @@ for events in all_events:
             out.write_short(0xE0 | events[1], events[3], events[4])
         case 15:
             pass
+
