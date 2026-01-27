@@ -272,5 +272,3 @@ for events in all_events:
             out.write_short(0xE0 | events[1], events[3], events[4])
         case 15:
             pass
-
-
