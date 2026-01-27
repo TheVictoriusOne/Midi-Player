@@ -181,10 +181,10 @@ for pos in Track_Pos:
 
 # GUI
 
-width, height = (1920, 1080)
+screen = pg.display.set_mode()
+width, height = pg.display.Info().current_w, pg.display.Info().current_h
 tile_w = max(1, int(width / 128 / 1.075))
 tile_h = max(1, int(height / 16))
-screen = pg.display.set_mode((width, height))
 pg.display.set_caption('Midi Player')
 pg.display.set_icon(pg.image.load(io.BytesIO(base64.b64decode('''iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAPUExURQAAABYWFp6env///wAAALfXCAkAAAAFdFJOU/////8A+7YOUwAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS40Et+mgwAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAADydgEA6AMAAPJ2AQDoAwAAUGFpbnQuTkVUIDUuMS40AAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAALAIjE6kK4+AAAAATElEQVQ4T+3OSwoAIAgEUFPvf+by0y5tkQRBQwNKbyHwJiUAsihocR4CWRQgjUlL8ny2/YNigF4Bc7bdgXysew3gOCiogiwC8pwC5g69lweRRNtytwAAAABJRU5ErkJggg=='''))))
 my_font = pg.font.SysFont('cascadiamonoregular', int(1/36 * height))
@@ -272,4 +272,5 @@ for events in all_events:
             out.write_short(0xE0 | events[1], events[3], events[4])
         case 15:
             pass
+
 
