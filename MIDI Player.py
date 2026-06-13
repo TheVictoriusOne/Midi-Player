@@ -40,7 +40,7 @@ TrackTotal = int.from_bytes(MIDI[10:12], 'big')
 
 Tempo = 500000
 SMPTE_offset = 0
-if get_bit(MIDI[12], 7):
+if bool(get_bit(MIDI[12], 7)):
     print('WARNING! SMPTE timecode format detected. \n In the current state which support for it is in, it will most likely not function properly.')
     print('Do you wish to continue? (Y/N)')
     if input() == 'N':
@@ -179,18 +179,25 @@ for pos in Track_Pos:
                         i += length
     Music.append(track_events)
 
+def stop_check():
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            exit()
+
 # GUI
 
-screen = pg.display.set_mode()
-width, height = pg.display.Info().current_w, pg.display.Info().current_h
+width, height = (1920,1080)
 tile_w = max(1, int(width / 128 / 1.075))
 tile_h = max(1, int(height / 16))
+screen = pg.display.set_mode((width, height))
 pg.display.set_caption('Midi Player')
 pg.display.set_icon(pg.image.load(io.BytesIO(base64.b64decode('''iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAPUExURQAAABYWFp6env///wAAALfXCAkAAAAFdFJOU/////8A+7YOUwAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS40Et+mgwAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAADydgEA6AMAAPJ2AQDoAwAAUGFpbnQuTkVUIDUuMS40AAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAALAIjE6kK4+AAAAATElEQVQ4T+3OSwoAIAgEUFPvf+by0y5tkQRBQwNKbyHwJiUAsihocR4CWRQgjUlL8ny2/YNigF4Bc7bdgXysew3gOCiogiwC8pwC5g69lweRRNtytwAAAABJRU5ErkJggg=='''))))
 my_font = pg.font.SysFont('cascadiamonoregular', int(1/36 * height))
+dark_overlay = pg.Surface((width, height), pg.SRCALPHA)
+dark_overlay.fill((0, 0, 0, 4))
 
 def render_GUI():
-    screen.fill((0, 0, 0))
+    screen.blit(dark_overlay, (0, 0))
     for y in range(16):
         pg.draw.line(screen, (50, 50, 50), (0, y*tile_h), (width, y*tile_h))
         screen.blit(my_font.render(f'CH {y}', True, (255,255,255)), (tile_w, y*tile_h + tile_h * 0.25))
@@ -217,19 +224,17 @@ for track in Music:
 all_events.sort(key=lambda ev: ev[2])
 
 
+
 active_notes = []
 for events in all_events:
     time_test = time.time_ns()
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            exit()
+    stop_check()
     time_test = time.time_ns() - time_test
     if time_test > 100000000:
         start_time += time_test
-    render_GUI()
     while (time.time_ns() - start_time) / 1000000 < events[2] * 1000:
-        #if round(time.time_ns() * 0.0000001) % 12 == 4:
-            # if necessary, you can run extra code here.
+        render_GUI()
+        stop_check()
         pass
         
     match events[0]:
