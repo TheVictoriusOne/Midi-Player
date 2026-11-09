@@ -19,11 +19,27 @@ def fail(msg):
     time.sleep(3)
     sys.exit()
 
-# Check if the file is correct.
-
-print('Enter the MIDI file name (including .mid!):')
-with open(input(), 'rb') as f:
-    MIDI = f.read()
+# Add a file.
+gui_active = True
+argv = sys.argv
+if len(argv) > 1:
+    try:
+        if len(argv) > 2: gui_active = sys.argv[2] == "True"
+        with open(sys.argv[1], 'rb') as f:
+            MIDI = f.read()
+    except FileNotFoundError:
+        argv = (None)
+        
+if len(argv) <= 1:
+    MIDI = None
+    while not MIDI:
+        print('Enter the MIDI file name (including .mid!):')
+        try:
+            with open(input(), 'rb') as f:
+                MIDI = f.read()
+        except FileNotFoundError:
+            print("\nFile not found, please retry.\n")
+    
 
 if MIDI[:4].decode() != 'MThd':
     fail('MThd not found, are you sure this is a midi file?')
@@ -42,7 +58,7 @@ Tempo = 500000
 SMPTE_offset = 0
 if bool(get_bit(MIDI[12], 7)):
     print('WARNING! SMPTE timecode format detected. \n In the current state which support for it is in, it will most likely not function properly.')
-    print('Do you wish to continue? (Y/N)')
+    print('Do you wish to continue? (anY/N)')
     if input() == 'N':
         exit()
         sys.exit()
@@ -59,7 +75,7 @@ if bool(get_bit(MIDI[12], 7)):
 else:
     is_smpte = False
     Divisions = int.from_bytes(MIDI[12:14], 'big')
-    tick = Tempo / 1000000 / Divisions
+    tick = Tempo / 1000000 / Divisions 
 
 SMPTE_offset = 0
 
@@ -102,39 +118,12 @@ for pos in Track_Pos:
         event = (status & 0b11110000) >> 4
         event2 = status & 0b00001111 # often times also the channel
         match event:
-            case 8:     # Note OFF
-                Note = MIDI[i]
-                Velocity = MIDI[i+1]
-                track_events.append((event, event2, total_delta, Note, Velocity))
+            case 8 | 9 | 10 | 11 | 14:     # Note OFF | Note ON | Polyphonic Key Pressure | Control Change | Pitch Wheel Change
+                track_events.append((event, event2, total_delta, MIDI[i], MIDI[i+1]))
                 i += 2
-            case 9:     # Note ON
-                Note = MIDI[i]
-                Velocity = MIDI[i+1]
-                track_events.append((event, event2, total_delta, Note, Velocity))
-                i += 2
-            case 10:    # Polyphonic Key Pressure
-                Note = MIDI[i]
-                Pressure = MIDI[i+1]
-                track_events.append((event, event2, total_delta, Note, Pressure))
-                i += 2
-            case 11:    # Control Change
-                Control = MIDI[i]
-                Value = MIDI[i+1]
-                track_events.append((event, event2, total_delta, Control, Value))
-                i += 2
-            case 12:    # Program Change
-                Program = MIDI[i]
-                track_events.append((event, event2, total_delta, Program))
+            case 12 | 13:    # Program Change | Channel Pressure
+                track_events.append((event, event2, total_delta, MIDI[i]))
                 i += 1
-            case 13:    # Channel Pressure
-                Pressure = MIDI[i]
-                track_events.append((event, event2, total_delta, Pressure))
-                i += 1
-            case 14:    # Pitch Wheel Change
-                lsb = MIDI[i]
-                msb = MIDI[i+1]
-                track_events.append((event, event2, total_delta, lsb, msb))
-                i += 2
             case 15:    # System Events
                 match event2:
                     case 15:    # Meta Events
@@ -179,42 +168,62 @@ for pos in Track_Pos:
                         i += length
     Music.append(track_events)
 
-def stop_check():
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            exit()
-
 # GUI
 
-width, height = (1920,1080)
-tile_w = max(1, int(width / 128 / 1.075))
-tile_h = max(1, int(height / 16))
-screen = pg.display.set_mode((width, height))
-pg.display.set_caption('Midi Player')
-pg.display.set_icon(pg.image.load(io.BytesIO(base64.b64decode('''iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAPUExURQAAABYWFp6env///wAAALfXCAkAAAAFdFJOU/////8A+7YOUwAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS40Et+mgwAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAADydgEA6AMAAPJ2AQDoAwAAUGFpbnQuTkVUIDUuMS40AAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAALAIjE6kK4+AAAAATElEQVQ4T+3OSwoAIAgEUFPvf+by0y5tkQRBQwNKbyHwJiUAsihocR4CWRQgjUlL8ny2/YNigF4Bc7bdgXysew3gOCiogiwC8pwC5g69lweRRNtytwAAAABJRU5ErkJggg=='''))))
-my_font = pg.font.SysFont('cascadiamonoregular', int(1/36 * height))
-dark_overlay = pg.Surface((width, height), pg.SRCALPHA)
-dark_overlay.fill((0, 0, 0, 4))
+if gui_active:
+    screen = pg.display.set_mode()
+    width, height = screen.get_size()
+    tile_w = max(1, int(width / 128 / 1.075))
+    tile_h = max(1, int(height / 16))
+    pg.display.set_caption('Midi Player')
+    pg.display.set_icon(pg.image.load(io.BytesIO(base64.b64decode('''iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAPUExURQAAABYWFp6env///wAAALfXCAkAAAAFdFJOU/////8A+7YOUwAAAAlwSFlzAAAOwgAADsIBFShKgAAAABh0RVh0U29mdHdhcmUAUGFpbnQuTkVUIDUuMS40Et+mgwAAALZlWElmSUkqAAgAAAAFABoBBQABAAAASgAAABsBBQABAAAAUgAAACgBAwABAAAAAgAAADEBAgAQAAAAWgAAAGmHBAABAAAAagAAAAAAAADydgEA6AMAAPJ2AQDoAwAAUGFpbnQuTkVUIDUuMS40AAMAAJAHAAQAAAAwMjMwAaADAAEAAAABAAAABaAEAAEAAACUAAAAAAAAAAIAAQACAAQAAABSOTgAAgAHAAQAAAAwMTAwAAAAALAIjE6kK4+AAAAATElEQVQ4T+3OSwoAIAgEUFPvf+by0y5tkQRBQwNKbyHwJiUAsihocR4CWRQgjUlL8ny2/YNigF4Bc7bdgXysew3gOCiogiwC8pwC5g69lweRRNtytwAAAABJRU5ErkJggg=='''))))
+    my_font = pg.font.SysFont('cascadiamonoregular', int(1/36 * height))
+
+    fade = pg.Surface((width, height), pg.SRCALPHA)
+    fade.fill((0,0,0,18))
+
+    channel_colors = (
+        (255,   0,   0),
+        (255, 165,   0),
+        (255, 255,   0),
+        (  0, 128,   0),
+        (  0, 255,   0),
+        (  0, 128, 128),
+        (  0, 255, 255),
+        (  0,   0, 255),
+        (  0,   0, 128),
+        (128,   0, 128),
+        (255,   0, 255),
+        (128,   0,   0),
+        (128, 128,   0),
+        (192, 192, 192),
+        (128, 128, 128),
+        (255, 255, 255)
+        )
 
 def render_GUI():
-    screen.blit(dark_overlay, (0, 0))
-    for y in range(16):
-        pg.draw.line(screen, (50, 50, 50), (0, y*tile_h), (width, y*tile_h))
-        screen.blit(my_font.render(f'CH {y}', True, (255,255,255)), (tile_w, y*tile_h + tile_h * 0.25))
-    pg.draw.line(screen, (200, 200, 200), (width*0.075, 0), (width*0.075, height))
+    screen.blit(fade, (0,0))
     for note, channel in active_notes:
         coords = (int(note * tile_w + width*0.075), int(channel * tile_h))
-        r = int((note * 2) % 256)
-        g = 0
-        b = int((channel * 32 + 20) % 256)
-        color = (r, g, b)
+
+        color = channel_colors[channel]
+        
         rect = pg.Rect(coords, (tile_w, tile_h))
         pg.draw.rect(screen, color, rect)
+    
+    for y in range(16):
+        pg.draw.line(screen, (50, 50, 50), (0, y*tile_h), (width, y*tile_h))
+        screen.blit(my_font.render(f'CH {y}', True, channel_colors[y]), (tile_w, y*tile_h + tile_h * 0.25))
+    pg.draw.line(screen, (50, 50, 50), (0, 16*tile_h-1), (width, 16*tile_h-1))
+    pg.draw.line(screen, (200, 200, 200), (width*0.075, 0), (width*0.075, height))
+    
     pg.display.flip()
 
 # Playback the MIDI
 
-start_time = time.time_ns() + 500000000
+clock = pg.Clock()
+
+start_time = time.perf_counter_ns()
 
 all_events = []
 for track in Music:
@@ -224,18 +233,20 @@ for track in Music:
 all_events.sort(key=lambda ev: ev[2])
 
 
-
 active_notes = []
 for events in all_events:
-    time_test = time.time_ns()
-    stop_check()
-    time_test = time.time_ns() - time_test
+    time_test = time.perf_counter_ns()
+    if pg.event.get(pg.QUIT): exit()
+    time_test = time.perf_counter_ns() - time_test
     if time_test > 100000000:
         start_time += time_test
-    while (time.time_ns() - start_time) / 1000000 < events[2] * 1000:
-        render_GUI()
-        stop_check()
-        pass
+    
+    
+    while (time.perf_counter_ns() - start_time) < events[2] * 1000000000:
+        clock.tick(120)
+        if gui_active: render_GUI()
+        if round(time.perf_counter_ns() * 0.0000001) & 120 == 4:
+            if pg.event.get(pg.QUIT): exit()
         
     match events[0]:
         case 8:     # Note Off
@@ -245,35 +256,24 @@ for events in all_events:
         case 9:     # Note On
             if events[4] == 0:
                 out.note_off(note=events[3], velocity=events[4], channel=events[1])
-                active_notes.remove((events[3], events[1]))
+                if (events[3], events[1]) in active_notes:
+                    active_notes.remove((events[3], events[1]))
             else:
                 out.note_on(note=events[3], velocity=events[4], channel=events[1])
                 active_notes.append((events[3], events[1]))
         case 10:     # Polyphonic Key Pressure
-            print("Polyphonic Key Pressure")
+            #print("Polyphonic Key Pressure")
             out.write_short(0xA0 | events[1], 1, events[3], events[4])
         case 11:     # Control Change
-            match events[3]:
-                case 0x07:      # Channel Volume
-                    print("Channel Volume")
-                    out.write_short(0xB0 | events[1], 0x07, events[4])
-                case 0x0A:      # Pan
-                    print("Pan Channel")
-                    out.write_short(0xB0 + events[1], 0x0A, events[4])
-                case 0x0B:      # Expression
-                    print("Expression")
-                    out.write_short(0xB0 + events[1], 0x0B, events[4])
-                case 0x40:      # Sustain
-                    print("Sustain")
-                    pass
+            out.write_short(0xB0 | events[1], events[3], events[4])
         case 12:     # Program Change
-            print("Program Change")
+            #print("Program Change")
             out.set_instrument(events[3], channel=events[1])
         case 13:     # Channel Pressure
-            print("Channel Pressure")
+            #print("Channel Pressure")
             out.write_short(0xD0 | events[1], events[3])
         case 14:     # Pitch Wheel Change
-            print("Pitch Wheel Change")
+            #print("Pitch Wheel Change")
             out.write_short(0xE0 | events[1], events[3], events[4])
         case 15:
             pass
