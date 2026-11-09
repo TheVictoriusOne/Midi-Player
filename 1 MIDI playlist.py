@@ -3,7 +3,7 @@ import sys
 import json
 import time
 import subprocess
-import random as r
+from random import choice
 from pathlib import Path
 
 def cls(): os.system('cls' if os.name == 'nt' else 'clear')
@@ -98,7 +98,7 @@ try:
         for midi in playlist:
             if shuffle:
                 choices = [song for song in playlist if song != prev_midi]
-                midi = r.choice(choices if choices else playlist)
+                midi = choice(choices if choices else playlist)
             cls()
             print(f"Currently playing {midi}")
             subprocess.run([sys.executable, f"0 MIDI Player.py", midi, str(gui_active)], stdout=stdout_val, stderr=stderr_val)
