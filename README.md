@@ -4,3 +4,6 @@ Installing pygame merely requires you to input "pip install pygame" (excluding t
 There are a few sample midi's, although you can just as easily place a few new midi's within the program folder and it'll work just fine.
 To start the player program directly, execute 0 Midi Player.py and enter the name of the midi you wish to play.
 One can also pass through a midi file as a launch argument to play that.
+
+One can also create and start playlists of MIDI's utilizing 1 MIDI playlist.py
+It is a given that it must be in the same folder as 0 MIDI Player.py
