@@ -91,17 +91,17 @@ else:
     stdout_val=open(os.devnull, 'w')
     
 stderr_val=subprocess.STDOUT
-prev_midi = None
 cls()
 try:
     while True:
+        prev_midi = set()
         for midi in playlist:
             if shuffle:
-                choices = [song for song in playlist if song != prev_midi]
+                choices = [song for song in playlist if song not in prev_midi]
                 midi = choice(choices if choices else playlist)
             cls()
             print(f"Currently playing {midi}")
             subprocess.run([sys.executable, f"0 MIDI Player.py", midi, str(gui_active)], stdout=stdout_val, stderr=stderr_val)
-            prev_midi = midi
+            prev_midi.append(midi)
 except KeyboardInterrupt:
     print("Quitting program.")
