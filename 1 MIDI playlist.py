@@ -37,13 +37,15 @@ def save_playlist(playlist):
     cls()
     while True:
         try:
-            filename = "playlists/" + input("Save playlist as: ").rsplit(".", 1)[0] + ".json"
-            with open(filename, "w") as f:
-                json.dump(playlist, f, indent=2)
-                cls()
-                print("Succesfully stored the playlist!")
-                time.sleep(2)
-                return
+            filename = input("Save playlist as: ").rsplit(".", 1)[0]
+            if filename.strip() != "":
+                filename = "playlists/" + filename  + ".json"
+                with open(filename, "w") as f:
+                    json.dump(playlist, f, indent=2)
+                    cls()
+                    print("Succesfully stored the playlist!")
+                    time.sleep(2)
+                    return
         except Exception:
             cls()
             print("Couldn't store playlist.")
