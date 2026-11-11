@@ -3,29 +3,41 @@ import sys
 import json
 import time
 import subprocess
-from random import choice
+from random import shuffle
 from pathlib import Path
 
+# Short function to wipe the terminal screen.
 def cls(): os.system('cls' if os.name == 'nt' else 'clear')
 cls()
 
-try: os.mkdir("playlists")
-except FileExistsError: pass
-except Exception: print("Cannot make a playlists folder.")
+# Folder must exist to store potential playlists in.
+Path("playlists").mkdir(exist_ok=True)
 
+# Hand the user all items inside of the playlists folder
 def load_playlist():
     while True:
         try:
-            playlists = os.listdir("playlists")
-            print(f"-- Playlists ({len(playlists)} items) --")
-            for i, name in enumerate(playlists): print(name.rsplit(".", 1)[0])
+            playlists = [item for item in os.listdir("playlists") if item.endswith(".json")]
+            print(f"-- Playlists ({len(playlists)} item{"s" if len(playlists) != 1 else ""}) --")
+            for i, item in enumerate(playlists, 1): print(f"{i} - {item[:-5]}")
             print("-------------------------")
-            playlist_name = input("(Leave empty for new playlist.)\nPlaylist name: ").rsplit(".", 1)[0]
-            if playlist_name != "":
-                with open("playlists/" + playlist_name + ".json", "r") as f:
-                    return json.load(f)
+            playlist_item = input("(Leave empty for new playlist.)\nPlaylist name: ").strip()
+            if playlist_item == "": return None
+
+            if not playlist_item.lower().endswith(".json"):
+                playlist_item += ".json"
+
+            if playlist_item in playlists:
+                with open("playlists/" + playlist_item, "r") as f:
+                    playlist = json.load(f)
+                    if isinstance(playlist, list) and len(playlist) > 0 and all(isinstance(item, str) for item in playlist):
+                        return playlist
+                    else:
+                        cls()
+                        print("Invalid playlist format.")
             else:
-                return None
+                cls()
+                print("Playlist not found.")
         except FileNotFoundError:
             cls()
             print("File not found.")
@@ -37,18 +49,22 @@ def save_playlist(playlist):
     cls()
     while True:
         try:
-            filename = input("Save playlist as: ").rsplit(".", 1)[0]
-            if filename.strip() != "":
-                filename = "playlists/" + filename  + ".json"
-                with open(filename, "w") as f:
+            filename = input("Save playlist as: ").strip()
+            filename = Path(filename).name
+            if filename:
+                if not filename.lower().endswith(".json"):
+                    filename += ".json"
+
+                with open("playlists/" + filename, "w") as f:
                     json.dump(playlist, f, indent=2)
                     cls()
                     print("Succesfully stored the playlist!")
                     time.sleep(2)
                     return
-        except Exception:
+            
+        except OSError as e:
             cls()
-            print("Couldn't store playlist.")
+            print("Couldn't store playlist: ", e)
         
 def create_playlist():
     playlist = []
@@ -58,7 +74,7 @@ def create_playlist():
             cls()
             if midi_name is None:
                 pass
-            elif Path(midi_name + ".mid").exists():
+            elif Path(midi_name + ".mid").is_file():
                 playlist.append(midi_name+".mid")
                 print(f"Added {midi_name + ".mid"} succesfully.\n")
             else:
@@ -68,7 +84,9 @@ def create_playlist():
             for name in playlist: print(name)
             print( "------------------------\n")
             print("(Leave empty to end.)")
-            midi_name = input("MIDI filename: ").rsplit(".", 1)[0]
+            midi_name = input("MIDI filename: ").strip()
+            if midi_name.lower().endswith(".mid"):
+                midi_name = midi_name[:-4]
     return playlist
 
 
@@ -84,26 +102,19 @@ if len(playlist) < 1:
     exit()
 
 gui_active = input("Allow program to show GUI? [y/N]: ").lower() == "y"
-shuffle = input("Shuffle mode? [Y/n]: ").lower() != "n"
+shuffling = input("Shuffle mode? [Y/n]: ").lower() != "n"
 
-version = sys.version_info[0:2]
-if version[0] >= 3 and version[1] > 3:
-    stdout_val = subprocess.DEVNULL
-else:
-    stdout_val=open(os.devnull, 'w')
-    
+stdout_val = subprocess.DEVNULL
 stderr_val=subprocess.STDOUT
 cls()
 try:
     while True:
-        prev_midi = set()
-        for midi in playlist:
-            if shuffle:
-                choices = [song for song in playlist if song not in prev_midi]
-                midi = choice(choices if choices else playlist)
+        shuffled = playlist.copy()
+        if shuffling: shuffle(shuffled)
+            
+        for midi in shuffled:
             cls()
             print(f"Currently playing {midi}")
             subprocess.run([sys.executable, f"0 MIDI Player.py", midi, str(gui_active)], stdout=stdout_val, stderr=stderr_val)
-            prev_midi.add(midi)
 except KeyboardInterrupt:
     print("Quitting program.")
