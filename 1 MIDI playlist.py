@@ -104,6 +104,6 @@ try:
             cls()
             print(f"Currently playing {midi}")
             subprocess.run([sys.executable, f"0 MIDI Player.py", midi, str(gui_active)], stdout=stdout_val, stderr=stderr_val)
-            prev_midi.append(midi)
+            prev_midi.add(midi)
 except KeyboardInterrupt:
     print("Quitting program.")
