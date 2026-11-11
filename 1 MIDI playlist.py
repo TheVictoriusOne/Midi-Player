@@ -20,9 +20,19 @@ def load_playlist():
             playlists = [item for item in os.listdir("playlists") if item.endswith(".json")]
             print(f"-- Playlists ({len(playlists)} item{"s" if len(playlists) != 1 else ""}) --")
             for i, item in enumerate(playlists, 1): print(f"{i} - {item[:-5]}")
-            print("-------------------------")
+            print("------------------------\n")
+            print("Type in playlist name, or associated number.\n")
             playlist_item = input("(Leave empty for new playlist.)\nPlaylist name: ").strip()
             if playlist_item == "": return None
+
+            if playlist_item.isdigit():
+                playlist_item = int(playlist_item)
+                if playlist_item >= 1 and playlist_item <= len(playlists):
+                    playlist_item = playlists[playlist_item-1]
+                else:
+                    cls()
+                    print("Invalid number.")
+                    continue
 
             if not playlist_item.lower().endswith(".json"):
                 playlist_item += ".json"
